@@ -15,7 +15,7 @@ executable aoc2023
     -Wall
 
   default-extensions:
-    OverloadedStrings
+    -- OverloadedStrings
     -- LambdaCase
     -- ScopedTypeVariables
     -- DisambiguateRecordFields
@@ -24,7 +24,6 @@ executable aoc2023
   other-modules:
     Paths_aoc2023
     Day01
-    Day02
 
   autogen-modules:
     Paths_aoc2023

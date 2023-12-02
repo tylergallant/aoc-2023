@@ -2,3 +2,5 @@ services:
   aoc2023:
     build:
       context: .
+    volumes:
+      - './data:/usr/aoc-2023/data'
