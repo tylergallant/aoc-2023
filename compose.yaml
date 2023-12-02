@@ -1,0 +1,4 @@
+services:
+  aoc2023:
+    build:
+      context: .
