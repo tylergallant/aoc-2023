@@ -3,7 +3,7 @@
 This is a template project for solving Advent Of Code (2023) in Haskell: fork it and you can start solving!
 
 ## Setup
-
+### Dev Setup
 You are expected to have `ghcup` installed on your machine.
 
 Run `./ghcup-set.sh` to set the intended version of GHC, cabal and HLS via GHCup.
@@ -25,7 +25,14 @@ Your code in `src/DayXX.hs` can then read those files as needed.
 These data files are gitignored, since AoC authors ask not to publicly post your puzzle input files.
 
 ## Running
+### As a Docker Container
+This codebase is dockerized. To run the code for a given day's challenge,
+assuming you have docker installed, you can simply run
+`docker compose run --build --rm aoc2023 <day number>`. This should build an
+image and spin up a container to run the solution, print the output, and then
+exit and delete the container.
 
+### Locally
 Easiest way is calling `./day <num>` to run specific day, e.g. `./day 1`.
 
 `day` is really just a helper script for calling `cabal run`, so you can use `cabal run` directly if you want more control. `cabal run` will build all your code (same as `cabal build`) and then run the executable which has `src/Main.hs` as its entry point.
