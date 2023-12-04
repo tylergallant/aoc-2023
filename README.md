@@ -26,8 +26,9 @@ These data files are gitignored, since AoC authors ask not to publicly post your
 
 ## Running
 > Note that you should create a `data` directory and put your input data as
-text files there before running. input files should be named according to the
-format `dayXX-input.txt`, where `XX` is the day number, such as `01`.
+text files there before running. Input files should be named according to the
+format `dayXX-input.txt`, where `XX` is the day number, such as
+`day01-input.txt`.
 
 ### As a Docker Container
 This codebase is dockerized. To run the code for a given day's challenge,
