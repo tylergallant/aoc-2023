@@ -24,6 +24,8 @@ executable aoc2023
   other-modules:
     Paths_aoc2023
     Day01
+    Day02
+    Utils.Parsing
 
   autogen-modules:
     Paths_aoc2023
