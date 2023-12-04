@@ -25,16 +25,16 @@ Your code in `src/DayXX.hs` can then read those files as needed.
 These data files are gitignored, since AoC authors ask not to publicly post your puzzle input files.
 
 ## Running
+> Note that you should create a `data` directory and put your input data as
+text files there before running. input files should be named according to the
+format `dayXX-input.txt`, where `XX` is the day number, such as `01`.
+
 ### As a Docker Container
 This codebase is dockerized. To run the code for a given day's challenge,
 assuming you have docker installed, you can simply run
 `docker compose run --build --rm aoc2023 <day number>`. This should build an
 image and spin up a container to run the solution, print the output, and then
 exit and delete the container.
-
-> Note that you should create a `data` directory and put your input data as
-text files there before running. input files should be named according to the
-format `dayXX-input.txt`, where `XX` is the day number, such as `01`.
 
 ### Locally
 Easiest way is calling `./day <num>` to run specific day, e.g. `./day 1`.
