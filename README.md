@@ -4,8 +4,7 @@ This was created from a
 [template project](https://github.com/Martinsos/aoc-2023-haskell-template) for
 solving Advent Of Code (2023) in Haskell: fork it and you can start solving!
 
-## Setup
-### Dev Setup
+## Dev Setup
 You are expected to have `ghcup` installed on your machine.
 
 Run `./ghcup-set.sh` to set the intended version of GHC, cabal and HLS via GHCup.
