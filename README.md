@@ -32,6 +32,10 @@ assuming you have docker installed, you can simply run
 image and spin up a container to run the solution, print the output, and then
 exit and delete the container.
 
+> Note that you should create a `data` directory and put your input data as
+text files there before running. input files should be named according to the
+format `dayXX-input.txt`, where `XX` is the day number, such as `01`.
+
 ### Locally
 Easiest way is calling `./day <num>` to run specific day, e.g. `./day 1`.
 
