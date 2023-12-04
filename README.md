@@ -1,6 +1,8 @@
 # AOC 2023
 
-This is a template project for solving Advent Of Code (2023) in Haskell: fork it and you can start solving!
+This was created from a
+[template project](https://github.com/Martinsos/aoc-2023-haskell-template) for
+solving Advent Of Code (2023) in Haskell: fork it and you can start solving!
 
 ## Setup
 ### Dev Setup
