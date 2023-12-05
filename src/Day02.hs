@@ -3,24 +3,16 @@ module Day02 where
 import Data.Foldable (traverse_)
 import Paths_aoc2023 (getDataFileName)
 import Text.ParserCombinators.ReadP
-  (char, choice, eof, ReadP, sepBy1, string)
+  (char, choice, eof, ReadP, sepBy1, skipSpaces, string)
 import Utils.Parsing (parseReadable, runParser)
 
 type GameId = Int
 
 type Color = String
 
-data Cubes = Cubes
-  { red :: Int
-  , green :: Int
-  , blue :: Int
-  } deriving (Show, Eq)
+data Cubes = Cubes { red :: Int , green :: Int , blue :: Int }
 
 data Game = Game GameId [Cubes]
-
-instance Ord Cubes where
-  this <= that = all colorLT [red, green, blue]
-    where colorLT color = color this <= color that
 
 sortCubes :: [(Int, Color)] -> Cubes
 sortCubes cubes = Cubes
@@ -46,25 +38,25 @@ parseGame = Game <$> parseGameId <*> sepBy1 parseCubes cubeSep
     cubeSep = string "; "
 
 parseGames :: ReadP [Game]
-parseGames = sepBy1 parseGame sep <* end
-  where
-    sep = char '\n'
-    end = char '\n' *> eof
+parseGames = sepBy1 parseGame sep <* skipSpaces <* eof
+  where sep = char '\n'
 
 targetCubes :: Cubes
 targetCubes = Cubes { red = 12 , green = 13 , blue = 14 }
 
+possibleWith :: Cubes -> Cubes -> Bool
+possibleWith minCubes maxCubes = all colorLT [red, green, blue]
+  where colorLT color = color minCubes <= color maxCubes
+
 gameIsPossible :: Game -> Bool
-gameIsPossible (Game _ cubeSets) = all (<= targetCubes) cubeSets
+gameIsPossible (Game _ cubeSets) = all (`possibleWith` targetCubes) cubeSets
 
-parsePossibleGames :: ReadP [Game]
-parsePossibleGames = filter gameIsPossible <$> parseGames
-
-parseSumOfPossibleGameIds :: ReadP Int
-parseSumOfPossibleGameIds = sum . fmap getId <$> parsePossibleGames
+solution :: [Game] -> Int
+solution = sum . fmap getId . filter gameIsPossible
   where getId (Game gameId _) = gameId
 
 day02 :: IO ()
 day02 = do
   input <- getDataFileName "day02-input.txt" >>= readFile
-  traverse_ print $ runParser parseSumOfPossibleGameIds input
+  printMaybe $ solution <$> runParser parseGames input
+    where printMaybe = traverse_ print
