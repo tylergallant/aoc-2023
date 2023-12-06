@@ -51,12 +51,34 @@ possibleWith minCubes maxCubes = all colorLT [red, green, blue]
 gameIsPossible :: Game -> Bool
 gameIsPossible (Game _ cubeSets) = all (`possibleWith` targetCubes) cubeSets
 
-solution :: [Game] -> Int
-solution = sum . fmap getId . filter gameIsPossible
+minimumCubes :: Cubes -> Cubes -> Cubes
+minimumCubes this that = Cubes
+  { red = maxColor red
+  , green = maxColor green
+  , blue = maxColor blue
+  } where maxColor color = max (color this) (color that)
+
+minimumCubesForGame :: Game -> Cubes
+minimumCubesForGame (Game _ cubeSets)= foldr minimumCubes initial cubeSets
+  where initial = Cubes { red = 0, green = 0, blue = 0 }
+
+cubeSetPower :: Cubes -> Int
+cubeSetPower cubes = product $ getCubes <$> [red, green, blue]
+  where getCubes color = color cubes
+
+solution1 :: [Game] -> Int
+solution1 = sum . fmap getId . filter gameIsPossible
   where getId (Game gameId _) = gameId
+
+solution2 :: [Game] -> Int
+solution2 games = sum $ cubeSetPower . minimumCubesForGame <$> games
 
 day02 :: IO ()
 day02 = do
   input <- getDataFileName "day02-input.txt" >>= readFile
-  printMaybe $ solution <$> runParser parseGames input
+  let parsedGames = runParser parseGames input
+  putStr "Solution 1: "
+  printMaybe $ solution1 <$> parsedGames
+  putStr "Solution 2: "
+  printMaybe $ solution2 <$> parsedGames
     where printMaybe = traverse_ print
