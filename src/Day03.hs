@@ -1,7 +1,7 @@
 module Day03 where
 
 import Control.Applicative (asum, optional, many)
-import Control.Monad.State.Lazy (evalStateT, get, lift, modify, put, StateT(..))
+import Control.Monad.State.Lazy (evalStateT, get, lift, modify, put, StateT)
 import Data.Char (isDigit)
 import Data.Foldable (traverse_)
 import Data.Functor (void)

@@ -1,7 +1,6 @@
 module Day04 where
 
 import Data.Foldable (traverse_)
-import Data.Functor (void)
 import Data.List (nub)
 import Paths_aoc2023 (getDataFileName)
 import Text.ParserCombinators.ReadP
