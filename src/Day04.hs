@@ -11,14 +11,6 @@ import Utils.Parsing (parseReadable, runParser)
 type Card = ([Int], [Int])
 type Pile = [Card]
 
-parseCard' :: ReadP Card
-parseCard' = do
-  let parseInt = parseReadable :: ReadP Int
-  winningNums <- sepBy parseInt skipSpaces
-  void $ string " | "
-  nums <- sepBy parseInt skipSpaces
-  return (winningNums, nums)
-
 parseCard :: ReadP Card
 parseCard = (,) <$> parseWinningNums <*> parseNums
   where
