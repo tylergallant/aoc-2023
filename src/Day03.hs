@@ -5,11 +5,13 @@ import Control.Monad.State.Lazy (evalStateT, get, lift, put, StateT(..))
 import Data.Char (isDigit)
 import Data.Foldable (traverse_)
 import Data.Functor (void)
+import Data.List (nubBy)
+import Data.Tuple (swap)
 import Paths_aoc2023 (getDataFileName)
 import Text.ParserCombinators.ReadP (char, eof, look, munch1, ReadP, satisfy)
 import Utils.Parsing (runParser)
 
-data Element = Blank | Symbol Char | Number Int deriving Show
+data Element = Blank | Symbol Char | Number Int deriving (Show, Eq)
 
 type Position = (Int, Int)
 
@@ -59,11 +61,10 @@ parseManyTill element end = scan
       maybe parseElement reachedEnd $ runParser parseEnd input
 
 parseSchematic :: Parser Schematic
-parseSchematic = parseElements
+parseSchematic = parseManyTill parseElement $ lift eof
   where
-    parseElements = parseManyTill parseElement $ lift eof
-    parseElement = asum elementParsers <* optional parseNewLine
-    elementParsers = [parseBlank, parseSymbol, parseNumber]
+    parseElement = asum parsers <* optional parseNewLine
+    parsers = [parseBlank, parseSymbol, parseNumber]
 
 symbols :: Schematic -> Schematic
 symbols = filter f
@@ -77,18 +78,51 @@ numbers = filter f
     f (Number _, _) = True
     f _ = False
 
-adjacent :: Position -> Position -> Bool
-adjacent (x, y) (x', y')
-  | (x, y) /= (x', y') && abs (x - x') <= 1 && abs (y - y') <= 1 = True
-  | otherwise = False
+asterisks :: Schematic -> Schematic
+asterisks = filter f
+  where
+    f (Symbol '*', _) = True
+    f _ = False
 
-elementsAdjacent :: IndexedElement -> IndexedElement -> Bool
-elementsAdjacent (_, as) (_, bs) = or $ adjacent <$> as <*> bs
+distance :: Position -> Position -> Int
+distance (x, y) (a, b) = floor hyp
+  where
+    hyp = sqrt $ adj ** 2 + opp ** 2 :: Double
+    adj = len x a
+    opp = len y b
+    len n m = abs $ fromIntegral n - fromIntegral m
+
+elementDistance :: IndexedElement -> IndexedElement -> Int
+elementDistance (_, is) (_, js) = minimum $ distance <$> is <*> js
+
+adjacent :: IndexedElement -> IndexedElement -> Bool
+adjacent a b = elementDistance a b == 1
 
 partNumbers :: Schematic -> Schematic
-partNumbers schematic =
-  fmap fst . filter adjs $ (,) <$> numbers schematic <*> symbols schematic
-    where adjs = uncurry elementsAdjacent
+partNumbers schematic = fst <$> filter adjs candidates
+  where
+    adjs = uncurry adjacent
+    candidates = (,) <$> numbers schematic <*> symbols schematic
+
+numberPairs :: Schematic -> [(IndexedElement, IndexedElement)]
+numberPairs schematic = nubBy mirrored $ filter nearby pairs
+  where
+    nums = numbers schematic
+    pairs = (,) <$> nums <*> nums
+    mirrored pair = (== swap pair)
+    nearby (a, b) = (a /= b &&) . (<= 2) $ elementDistance a b
+
+gears :: Schematic -> [(IndexedElement, (IndexedElement, IndexedElement))]
+gears schematic = filter isGear gearCandidates
+  where
+    isGear (g, (n, m)) = adjacent g n && adjacent g m
+    gearCandidates = (,) <$> asterisks schematic <*> numberPairs schematic
+
+gearRatios :: Schematic -> [Int]
+gearRatios schematic = uncurry (*) . gearParts <$> gears schematic
+  where
+    gearParts (_, ((Number n, _), (Number m, _))) = (n, m)
+    gearParts _ = (0, 0)
 
 sumPartNumbers :: Schematic -> Int
 sumPartNumbers = sum . fmap getNumber . partNumbers
@@ -97,9 +131,15 @@ sumPartNumbers = sum . fmap getNumber . partNumbers
     matchNumber (Number n) = n
     matchNumber _ = 0
 
+totalGearRatios :: Schematic -> Int
+totalGearRatios = sum . gearRatios
+
 day03 :: IO ()
-day03 = getInput >>= printSchematic . parseInput
+day03 = readSchematic >>= traverse_ runSolutions
     where
-      getInput = getDataFileName "day03-input.txt" >>= readFile
+      file = "day03-input.txt"
+      readSchematic = fmap parseInput $ getDataFileName file >>= readFile
       parseInput = runParser $ evalStateT parseSchematic (0, 0)
-      printSchematic = traverse_ $ print . sumPartNumbers
+      runSolutions schematic = do
+        putStrLn . ("Puzzle 1: "++) . show $ sumPartNumbers schematic
+        putStrLn . ("Puzzle 2: "++) . show $ totalGearRatios schematic

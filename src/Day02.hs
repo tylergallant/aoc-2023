@@ -77,8 +77,8 @@ day02 :: IO ()
 day02 = do
   input <- getDataFileName "day02-input.txt" >>= readFile
   let parsedGames = runParser parseGames input
-  putStr "Solution 1: "
+  putStr "Puzzle 1: "
   printMaybe $ solution1 <$> parsedGames
-  putStr "Solution 2: "
+  putStr "Puzzle 2: "
   printMaybe $ solution2 <$> parsedGames
     where printMaybe = traverse_ print
