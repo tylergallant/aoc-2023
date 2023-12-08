@@ -1,6 +1,6 @@
 module Day03 where
 
-import Control.Applicative (asum, optional)
+import Control.Applicative (asum, optional, many)
 import Control.Monad.State.Lazy (evalStateT, get, lift, put, StateT(..))
 import Data.Char (isDigit)
 import Data.Foldable (traverse_)
@@ -8,7 +8,7 @@ import Data.Functor (void)
 import Data.List (nubBy)
 import Data.Tuple (swap)
 import Paths_aoc2023 (getDataFileName)
-import Text.ParserCombinators.ReadP (char, eof, look, munch1, ReadP, satisfy)
+import Text.ParserCombinators.ReadP (char, eof, munch1, ReadP, satisfy)
 import Utils.Parsing (runParser)
 
 data Element = Blank | Symbol Char | Number Int deriving (Show, Eq)
@@ -49,19 +49,8 @@ parseNewLine = do
   (_, y) <- get
   put (0, y + 1)
 
-parseManyTill :: Parser a -> Parser end -> Parser [a]
-parseManyTill element end = scan
-  where
-    reachedEnd (_, pos) = put pos >> return []
-    parseElement = (:) <$> element <*> scan
-    scan = do
-      input <- lift look
-      pos <- get
-      let parseEnd = runStateT end pos
-      maybe parseElement reachedEnd $ runParser parseEnd input
-
 parseSchematic :: Parser Schematic
-parseSchematic = parseManyTill parseElement $ lift eof
+parseSchematic = many parseElement <* lift eof
   where
     parseElement = asum parsers <* optional parseNewLine
     parsers = [parseBlank, parseSymbol, parseNumber]
