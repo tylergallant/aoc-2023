@@ -1,91 +1,105 @@
 module Day03 where
 
-import Control.Applicative ((<|>))
+import Control.Applicative (asum, optional)
+import Control.Monad.State.Lazy (evalStateT, get, lift, put, StateT(..))
 import Data.Char (isDigit)
-import Data.Map.Lazy (Map)
-import qualified Data.Map.Lazy as Map
-  (filterWithKey, fromList, lookup, restrictKeys, toList)
-import Data.Set (Set)
-import qualified Data.Set as Set (fromList)
+import Data.Foldable (traverse_)
+import Data.Functor (void)
 import Paths_aoc2023 (getDataFileName)
+import Text.ParserCombinators.ReadP (char, eof, look, munch1, ReadP, satisfy)
+import Utils.Parsing (runParser)
 
-newtype Idx = Idx (Int, Int) deriving Eq
+data Element = Blank | Symbol Char | Number Int deriving Show
 
-type EngineSchematic = Map Idx Char
+type Position = (Int, Int)
 
-instance Ord Idx where
-  Idx (x1, y1) <= Idx (x2, y2)
-    | y1 == y2 = x1 <= x2
-    | otherwise = y1 < y2
+type IndexedElement = (Element, [Position])
 
-parseEngineSchematic :: String -> EngineSchematic
-parseEngineSchematic input = Map.fromList indexed
+type Schematic = [IndexedElement]
+
+type Parser = StateT Position ReadP
+
+parseBlank :: Parser IndexedElement
+parseBlank = do
+  el <- lift $ Blank <$ char '.'
+  (x, y) <- get
+  put (x + 1, y)
+  return (el, [(x, y)])
+
+parseSymbol :: Parser IndexedElement
+parseSymbol = do
+  symbol <- lift . satisfy $ \c -> not $ isDigit c || c == '.' || c == '\n'
+  (x, y) <- get
+  put (x + 1, y)
+  return (Symbol symbol, [(x, y)])
+
+parseNumber :: Parser IndexedElement
+parseNumber = do
+  digits <- lift $ munch1 isDigit
+  (x, y) <- get
+  let x' = x + length digits
+  put (x', y)
+  return (Number $ read digits, [(x'', y) | x'' <- [x..x' - 1]])
+
+parseNewLine :: Parser ()
+parseNewLine = do
+  lift . void $ char '\n'
+  (_, y) <- get
+  put (0, y + 1)
+
+parseManyTill :: Parser a -> Parser end -> Parser [a]
+parseManyTill element end = scan
   where
-    indexed = do
-      (y, line) <- zip [0..] $ lines input
-      let makeIndex x c = (Idx (x, y), c)
-      zipWith makeIndex [0..] line
+    reachedEnd (_, pos) = put pos >> return []
+    parseElement = (:) <$> element <*> scan
+    scan = do
+      input <- lift look
+      pos <- get
+      let parseEnd = runStateT end pos
+      maybe parseElement reachedEnd $ runParser parseEnd input
 
-neighborIdxs :: Idx -> Set Idx
-neighborIdxs (Idx (x, y)) = Set.fromList $ Idx . addRelative <$> relativePos
+parseSchematic :: Parser Schematic
+parseSchematic = parseElements
   where
-    addRelative (dx, dy) = (x + dx, y + dy)
-    relativePos = filter notIdentical $ (,) <$> coords <*> coords
-    coords = [-1, 0, 1]
-    notIdentical (0, 0) = False
-    notIdentical _ = True
+    parseElements = parseManyTill parseElement $ lift eof
+    parseElement = asum elementParsers <* optional parseNewLine
+    elementParsers = [parseBlank, parseSymbol, parseNumber]
 
-neighbors :: Idx -> EngineSchematic -> EngineSchematic
-neighbors idx schematic = Map.restrictKeys schematic $ neighborIdxs idx
-
-isSymbol :: Char -> Bool
-isSymbol c
-  | c == '.' || isDigit c = False
-  | otherwise = True
-
-isPartNumberDigit :: EngineSchematic -> Idx -> Bool
-isPartNumberDigit schematic idx = idxIsDigit && hasSymbolNeighbors
+symbols :: Schematic -> Schematic
+symbols = filter f
   where
-    idxIsDigit = maybe False isDigit $ Map.lookup idx schematic
-    hasSymbolNeighbors = any isSymbol $ neighbors idx schematic
+    f (Symbol _, _) = True
+    f _ = False
 
-getContiguousDigits :: Idx -> EngineSchematic -> [(Idx, Char)]
-getContiguousDigits (Idx (x, y)) =
-  let subsequents = Map.filterWithKey subsequent
-   in getDigits . Map.toList . subsequents
+numbers :: Schematic -> Schematic
+numbers = filter f
   where
-    subsequent (Idx (x', y')) = const $ y' == y && x' >= x
-    getDigits = takeWhile (isDigit . snd)
+    f (Number _, _) = True
+    f _ = False
 
-maybePartNumber :: Idx -> EngineSchematic -> Maybe (Idx, Int)
-maybePartNumber idx schematic
-  | isPartNumber = Just . (,) end . read $ snd <$> digits
-  | otherwise = Nothing
+adjacent :: Position -> Position -> Bool
+adjacent (x, y) (x', y')
+  | (x, y) /= (x', y') && abs (x - x') <= 1 && abs (y - y') <= 1 = True
+  | otherwise = False
+
+elementsAdjacent :: IndexedElement -> IndexedElement -> Bool
+elementsAdjacent (_, as) (_, bs) = or $ adjacent <$> as <*> bs
+
+partNumbers :: Schematic -> Schematic
+partNumbers schematic =
+  fmap fst . filter adjs $ (,) <$> numbers schematic <*> symbols schematic
+    where adjs = uncurry elementsAdjacent
+
+sumPartNumbers :: Schematic -> Int
+sumPartNumbers = sum . fmap getNumber . partNumbers
   where
-    digits = getContiguousDigits idx schematic
-    end = fst $ last digits
-    isPartNumber =
-      let isPartDigit = isPartNumberDigit schematic . fst
-       in any isPartDigit digits
-
-partNumbers :: EngineSchematic -> [Int]
-partNumbers schematic = scan $ Idx (0, 0)
-  where
-    scan idx = maybeAddAndContinue idx $ maybePartNumber idx schematic
-    maybeAddAndContinue idx = maybe (continueOrEnd idx) addNumAndContinue
-    continueOrEnd idx = maybe [] scan $ nextIdx idx
-    addNumAndContinue (Idx (x, y), n) = n : scan (Idx (x + 1, y))
-    nextIdx (Idx (x, y)) =
-      let rightIdx = Idx (x + 1, y)
-          downIdx = Idx (0, y + 1)
-          right = rightIdx <$ Map.lookup rightIdx schematic
-          down = downIdx <$ Map.lookup downIdx schematic
-       in right <|> down
-
-solution1 :: EngineSchematic -> Int
-solution1 = sum . partNumbers
+    getNumber = matchNumber . fst
+    matchNumber (Number n) = n
+    matchNumber _ = 0
 
 day03 :: IO ()
-day03 = do
-  input <- getDataFileName "day03-input.txt" >>= readFile
-  print . solution1 $ parseEngineSchematic input
+day03 = getInput >>= printSchematic . parseInput
+    where
+      getInput = getDataFileName "day03-input.txt" >>= readFile
+      parseInput = runParser $ evalStateT parseSchematic (0, 0)
+      printSchematic = traverse_ $ print . sumPartNumbers
