@@ -1,7 +1,7 @@
 module Day03 where
 
 import Control.Applicative (asum, optional, many)
-import Control.Monad.State.Lazy (evalStateT, get, lift, put, StateT(..))
+import Control.Monad.State.Lazy (evalStateT, get, lift, modify, put, StateT(..))
 import Data.Char (isDigit)
 import Data.Foldable (traverse_)
 import Data.Functor (void)
@@ -46,8 +46,7 @@ parseNumber = do
 parseNewLine :: Parser ()
 parseNewLine = do
   lift . void $ char '\n'
-  (_, y) <- get
-  put (0, y + 1)
+  modify $ \(_, y) -> (0, y + 1)
 
 parseSchematic :: Parser Schematic
 parseSchematic = many parseElement <* lift eof
